@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>摄影知识问答助手</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <div class="header-content">
+        <h1><span class="icon">📷</span> 摄影知识问答助手</h1>
+         <p class="subtitle">基于 DeepSeek V4 Flash + RAG 知识库</p>
+      </div>
+      <div class="header-actions">
+        <button id="knowledgeBtn" class="btn-new-chat" title="知识库管理">
+          <span>📚</span> 知识库
+        </button>
+        <button id="newChatBtn" class="btn-new-chat" title="开始新会话">
+          <span>+</span> 新会话
+        </button>
+      </div>
+    </header>
+
+    <main class="chat-container" id="chatContainer">
+      <div class="welcome" id="welcomeMessage">
+        <div class="welcome-icon">📸</div>
+        <h2>你好！我是摄影知识助手</h2>
+        <p>我可以帮你解答摄影相关的问题，包括：</p>
+        <div class="topics">
+          <span class="topic-tag">曝光三要素</span>
+          <span class="topic-tag">构图技巧</span>
+          <span class="topic-tag">布光方法</span>
+          <span class="topic-tag">镜头选择</span>
+          <span class="topic-tag">后期调色</span>
+          <span class="topic-tag">实战场景</span>
+        </div>
+        <p class="hint">试着问我："什么是光圈？" 或 "如何拍摄剪影？"</p>
+      </div>
+    </main>
+
+    <footer class="input-area">
+      <form id="chatForm" class="chat-form">
+        <textarea
+          id="messageInput"
+          class="message-input"
+          placeholder="输入你的摄影问题... (Enter 发送, Shift+Enter 换行)"
+          rows="1"
+          autofocus
+        ></textarea>
+        <button type="submit" id="sendBtn" class="btn-send" disabled>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+          </svg>
+        </button>
+      </form>
+      <p class="footer-hint">按 Enter 发送 · 支持多轮对话 · 流式输出</p>
+    </footer>
+  </div>
+
+  <div id="knowledgeModal" class="modal-overlay" hidden>
+    <section class="knowledge-modal" role="dialog" aria-modal="true" aria-labelledby="knowledgeTitle">
+      <header class="modal-header">
+        <h2 id="knowledgeTitle">知识库管理</h2>
+        <button id="closeKnowledgeBtn" class="modal-close" type="button">×</button>
+      </header>
+      <div id="knowledgeList" class="knowledge-list"></div>
+    </section>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>

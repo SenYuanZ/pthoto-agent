@@ -1,0 +1,42 @@
+{
+  "name": "photo-agent",
+  "version": "1.0.0",
+  "description": "摄影知识问答系统 - NestJS + LangChain + LongCat 2.0",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "nest build",
+    "start": "nest start",
+    "start:dev": "nest start --watch",
+    "start:prod": "node dist/main.js"
+  },
+  "keywords": [
+    "photography",
+    "qa",
+    "langchain",
+    "nestjs",
+    "rag"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@langchain/community": "^1.1.29",
+    "@langchain/core": "^1.2.4",
+    "@langchain/openai": "^1.5.5",
+    "@nestjs/common": "^10.4.22",
+    "@nestjs/config": "^3.3.0",
+    "@nestjs/core": "^10.4.22",
+    "@nestjs/platform-express": "^10.4.22",
+    "@nestjs/serve-static": "^4.0.2",
+    "langchain": "^1.5.4",
+    "natural": "^8.1.1",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^10.4.9",
+    "@types/node": "^20.19.43",
+    "@types/uuid": "^9.0.8",
+    "typescript": "^5.9.3"
+  }
+}
