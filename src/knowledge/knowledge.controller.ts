@@ -129,6 +129,34 @@ export class KnowledgeController {
     };
   }
 
+  @Get('document')
+  getDocumentByQuery(@Query('source') source: string) {
+    if (!source) {
+      throw new HttpException('source query param is required', HttpStatus.BAD_REQUEST);
+    }
+
+    return this.getDocument(source);
+  }
+
+  @Put('document')
+  async updateDocumentByQuery(
+    @Query('source') source: string,
+    @Body() body: { content: string; category?: string },
+  ) {
+    if (!source) {
+      throw new HttpException('source query param is required', HttpStatus.BAD_REQUEST);
+    }
+    if (!body.content) {
+      throw new HttpException('content is required', HttpStatus.BAD_REQUEST);
+    }
+    const chunkCount = await this.knowledgeService.updateDocument(
+      source,
+      body.content,
+      body.category,
+    );
+    return { success: true, source, chunkCount };
+  }
+
   @Put('document/:source')
   async updateDocument(
     @Param('source') source: string,
