@@ -237,37 +237,37 @@ ${context}`;
 
   private async generateImage(prompt: string): Promise<string> {
     const baseUrl = this.configService.get<string>('longcat.baseUrl')!.replace(/\/$/, '');
-    const response = await fetch(`${baseUrl}/images/generations`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${this.configService.get<string>('longcat.apiKey')}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: this.configService.get<string>('longcat.imageModel'),
-        prompt,
-        size: '2K',
-        ratio: '16:9',
-        return_base64: true,
-        extra_body: { response_format: 'b64_json' },
-      }),
+    const body = JSON.stringify({
+      model: this.configService.get<string>('longcat.imageModel'),
+      prompt,
+      size: '1K',
+      ratio: '16:9',
     });
-    const data = await this.readMediaResponse(response);
-    const item = data?.data?.[0];
-    const base64 = item?.b64_json || item?.b64Json || item?.base64;
-    if (base64) return `data:image/png;base64,${base64}`;
-
-    if (item?.url) {
-      const imageResponse = await fetch(item.url);
-      if (!imageResponse.ok) {
-        throw new Error(`图片地址下载失败（${imageResponse.status}）`);
+    const headers = {
+      Authorization: `Bearer ${this.configService.get<string>('longcat.apiKey')}`,
+      'Content-Type': 'application/json',
+    };
+    const timeoutMs = 600_000;
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        const response = await fetch(`${baseUrl}/images/generations`, {
+          method: 'POST',
+          headers,
+          body,
+          signal: AbortSignal.timeout(timeoutMs),
+        });
+        const data = await this.readMediaResponse(response);
+        const item = data?.data?.[0];
+        const base64 = item?.b64_json || item?.b64Json || item?.base64;
+        if (item?.url) return item.url;
+        if (base64) return `data:image/png;base64,${base64}`;
+        throw new Error('图片生成成功但未返回图片地址');
+      } catch (err) {
+        this.logger.warn(`generateImage attempt ${attempt} failed: ${(err as Error).message}`);
+        if (attempt === 2) throw new Error(`图片生成失败：${(err as Error).message}`);
       }
-      const contentType = imageResponse.headers.get('content-type') || 'image/png';
-      const imageData = Buffer.from(await imageResponse.arrayBuffer()).toString('base64');
-      return `data:${contentType};base64,${imageData}`;
     }
-
-    throw new Error('图片生成成功但未返回图片地址或图片数据');
+    throw new Error('图片生成请求失败');
   }
 
   private async readMediaResponse(response: Response): Promise<any> {
