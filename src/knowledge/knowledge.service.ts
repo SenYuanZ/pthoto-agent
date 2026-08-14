@@ -179,11 +179,14 @@ export class KnowledgeService implements OnModuleInit {
 
   /**
    * Full original content for a source, so the UI can prefill an editor.
-   * Prefer the stored upload body, fall back to the seed document.
+   * Check the layers in override order: runtime uploads first, then the
+   * custom JSON file, then built-in seeds.
    */
   getOriginal(source: string): string | null {
     const upload = this.uploads.find((u) => u.source === source);
     if (upload) return upload.content;
+    const custom = customDocuments.find((d) => d.source === source);
+    if (custom) return custom.content;
     const seed = seedDocuments.find((d) => d.metadata.source === source);
     if (seed) return seed.content;
     return null;
