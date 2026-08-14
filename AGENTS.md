@@ -14,10 +14,12 @@
 - The app boots and serves the UI even without an API key; only streaming chat fails.
 
 ## Key gotchas
-- Embeddings are a **pure-JS hash vectorizer** (`src/knowledge/local-embeddings.ts`), NOT the configured `LONGCAT_EMBEDDING_MODEL`. That env var is unused. Knowledge search therefore has no API dependency and is local-only.
-- Seed documents are loaded on startup via `OnModuleInit`; user uploads are persisted as JSON under gitignored `storage/` and restored on restart.
-- POST `/knowledge/reindex` intentionally resets the knowledge base to static seed docs and clears persisted uploads.
+- Knowledge search is a **pure-JS BM25 retriever with CJK unigram+bigram tokenization** (`src/knowledge/local-vector-store.ts`), NOT the configured `LONGCAT_EMBEDDING_MODEL`. That env var is unused. Retrieval has no API dependency and is local-only; document titles (`metadata.source`) are boosted ×2 in scoring.
+- The knowledge base has **three layers**, merged in order (same `source` name: later layer wins): built-in seeds (`src/knowledge/data/seed-documents.ts`) → custom JSON (`src/knowledge/data/custom-documents.json`, committed, edit this file directly for your own knowledge) → runtime uploads (gitignored `storage/uploads.json`, managed via the UI). `GET /knowledge/list` returns each document's `origin` (`builtin`/`custom`/`upload`).
+- Deleting a document via the UI only removes it until the next restart when its origin is `builtin`/`custom` (the source file is never modified); `upload` deletions are permanent. The management UI warns about this per origin.
+- POST `/knowledge/reindex` rebuilds from seeds + custom JSON and **clears runtime uploads**, after backing them up to `storage/uploads.backup-<ts>.json`.
 - Chat history is cached per `sessionId` in `ChatService` and persisted to `storage/chat-history.json` after each completed response.
+- Retrieval quality can be checked offline: `npm run build && node scripts/verify-retrieval.mjs` (loads seeds + custom JSON, reports top-1/3/6 hit rates for sample questions).
 
 ## API
 - `POST /chat/stream` — SSE stream (`{ sessionId, question }`); emits `token` / `done` / `error` events over `text/event-stream`, with `done` carrying `fullResponse` and `sources`.
@@ -26,8 +28,8 @@
 
 ## Layout
 - `src/chat/` — streaming chat controller/service, RAG retrieval + LLM call, in-memory chat history.
-- `src/knowledge/` — vector store, local embeddings, seed docs, upload/reindex endpoints.
-- `public/` — vanilla JS SPA (no build step).
+- `src/knowledge/` — BM25 vector store + CJK tokenizer (`local-vector-store.ts`), seed docs, upload/reindex endpoints.
+- `public/` — vanilla JS SPA (no build step). Doubles as the knowledge base management console: list / view chunks / edit / delete / upload / add text / reindex. Management is intended to happen ONLY here; the H5 frontend's knowledge panel is view-only.
 - `uploads/` — gitignored upload dir (currently unused; files are read into memory via `FileInterceptor`).
 
 ## Styling

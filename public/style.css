@@ -331,6 +331,33 @@ body {
 
 .modal-header h2 { font-size: 1.1rem; }
 
+.knowledge-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.kb-text-form {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 12px;
+}
+
+.kb-input {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 8px;
+  padding: 8px;
+  resize: vertical;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font: inherit;
+}
+
 .modal-close {
   border: 0;
   background: transparent;
@@ -354,6 +381,18 @@ body {
 }
 
 .knowledge-item-title { font-weight: 600; overflow-wrap: anywhere; }
+.origin-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  vertical-align: 1px;
+}
+.origin-badge.origin-builtin { background: #e8f0fe; color: #2563eb; }
+.origin-badge.origin-custom { background: #e6f7ec; color: #16803c; }
+.origin-badge.origin-upload { background: #fdf0e3; color: #b45f06; }
 .knowledge-item-meta { color: var(--text-muted); font-size: 0.78rem; margin-top: 4px; }
 .knowledge-item-actions { display: flex; gap: 6px; flex-shrink: 0; }
 

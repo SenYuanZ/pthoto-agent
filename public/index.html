@@ -65,6 +65,20 @@
         <h2 id="knowledgeTitle">知识库管理</h2>
         <button id="closeKnowledgeBtn" class="modal-close" type="button">×</button>
       </header>
+      <div class="knowledge-tools">
+        <input id="kbFileInput" type="file" accept=".txt,.md,.json,.csv" hidden />
+        <button id="kbUploadBtn" class="btn-new-chat" type="button">⬆ 上传文档</button>
+        <button id="kbAddTextBtn" class="btn-new-chat" type="button">＋ 添加文本</button>
+        <button id="kbReindexBtn" class="btn-new-chat" type="button">⟳ 重建知识库</button>
+      </div>
+      <div id="kbTextForm" class="kb-text-form" hidden>
+        <input id="kbTextSource" class="kb-input" placeholder="文档名称，如：外景拍摄技巧" />
+        <textarea id="kbTextContent" class="kb-input" rows="3" placeholder="输入要加入知识库的内容"></textarea>
+        <div class="knowledge-item-actions">
+          <button id="kbTextSave" class="btn-new-chat" type="button">添加到知识库</button>
+          <button id="kbTextCancel" class="btn-new-chat" type="button">取消</button>
+        </div>
+      </div>
       <div id="knowledgeList" class="knowledge-list"></div>
     </section>
   </div>

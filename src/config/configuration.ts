@@ -20,7 +20,7 @@ export default () => ({
   rag: {
     chunkSize: parseInt(process.env.RAG_CHUNK_SIZE || '800', 10),
     chunkOverlap: parseInt(process.env.RAG_CHUNK_OVERLAP || '100', 10),
-    topK: parseInt(process.env.RAG_TOP_K || '4', 10),
+    topK: parseInt(process.env.RAG_TOP_K || '6', 10),
     temperature: parseFloat(process.env.RAG_TEMPERATURE || '0.3'),
   },
 });

@@ -135,9 +135,15 @@ export class ChatService {
     const topK = this.configService.get<number>('rag.topK');
     const history = await this.getHistory(sessionId);
 
-    // Retrieve relevant documents
-    const docs = await vectorStore.similaritySearch(question, topK);
+    // Retrieve relevant documents (with scores so knowledge hits are observable)
+    const results = await vectorStore.similaritySearchWithScores(question, topK);
+    const docs = results.map((r) => r.document);
     const context = docs.map((doc) => doc.pageContent).join('\n\n');
+    this.logger.log(
+      `Retrieved top-${results.length} for "${question}": ${results
+        .map((r) => `${r.document?.metadata?.source || '?'}(${r.score.toFixed(2)})`)
+        .join(', ')}`,
+    );
 
     // Build messages with history and context
     const historyMessages = await history.getMessages();

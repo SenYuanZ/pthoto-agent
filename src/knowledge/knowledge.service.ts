@@ -2,21 +2,24 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Document } from '@langchain/core/documents';
 import { RecursiveCharacterTextSplitter } from '@langchain/textsplitters';
-import { LocalEmbeddings, SimpleVectorStore } from './local-embeddings';
+import { SimpleVectorStore } from './local-vector-store';
 import { seedDocuments } from './data/seed-documents';
+import customDocuments from './data/custom-documents.json';
 import { JsonStore } from '../common/json-store';
+
+type DocOrigin = 'builtin' | 'custom' | 'upload';
 
 interface UploadRecord {
   source: string;
   category: string;
   content: string;
+  origin?: DocOrigin;
 }
 
 @Injectable()
 export class KnowledgeService implements OnModuleInit {
   private readonly logger = new Logger(KnowledgeService.name);
   private vectorStore: SimpleVectorStore;
-  private embeddings: LocalEmbeddings;
   private documentChunks: Document[] = [];
   private uploads: UploadRecord[] = [];
   private chunkCounter = 0;
@@ -31,24 +34,46 @@ export class KnowledgeService implements OnModuleInit {
   }
 
   async initialize() {
-    this.embeddings = new LocalEmbeddings();
-    this.vectorStore = new SimpleVectorStore(this.embeddings, 384);
+    this.vectorStore = new SimpleVectorStore();
     this.documentChunks = [];
     this.chunkCounter = 0;
     this.uploads = await this.jsonStore.read<UploadRecord[]>('uploads', []);
 
-    this.logger.log('Loading seed documents...');
-    for (const doc of seedDocuments) {
-      await this.addSourceChunks(doc.content, doc.metadata.source, doc.metadata.category);
-    }
-    for (const up of this.uploads) {
-      await this.addSourceChunks(up.content, up.source, up.category);
+    this.logger.log('Loading seed + custom + uploaded documents...');
+    for (const doc of this.mergedSources()) {
+      await this.addSourceChunks(doc.content, doc.source, doc.category);
     }
     await this.persistUploads();
 
     this.logger.log(
-      `Knowledge ready: ${this.documentChunks.length} chunks, ${seedDocuments.length} seed docs, ${this.uploads.length} uploads`,
+      `Knowledge ready: ${this.documentChunks.length} chunks, ${seedDocuments.length} seed docs, ${customDocuments.length} custom docs, ${this.uploads.length} uploads`,
     );
+  }
+
+  /**
+   * Merge the three knowledge layers into one ordered source list:
+   * built-in seeds -> custom-documents.json -> runtime uploads.json.
+   * Later layers override earlier ones with the same source name, so an
+   * edited document replaces the built-in copy instead of duplicating it.
+   * Each record carries the origin of the layer it came from.
+   */
+  private mergedSources(): UploadRecord[] {
+    const map = new Map<string, UploadRecord>();
+    for (const doc of seedDocuments) {
+      map.set(doc.metadata.source, {
+        source: doc.metadata.source,
+        category: doc.metadata.category,
+        content: doc.content,
+        origin: 'builtin',
+      });
+    }
+    for (const doc of customDocuments) {
+      map.set(doc.source, { ...doc, origin: 'custom' });
+    }
+    for (const up of this.uploads) {
+      map.set(up.source, { ...up, origin: 'upload' });
+    }
+    return Array.from(map.values());
   }
 
   private get splitter(): RecursiveCharacterTextSplitter {
@@ -89,7 +114,7 @@ export class KnowledgeService implements OnModuleInit {
   }
 
   private async rebuildVectorStore() {
-    this.vectorStore = new SimpleVectorStore(this.embeddings, 384);
+    this.vectorStore = new SimpleVectorStore();
     if (this.documentChunks.length > 0) {
       await this.vectorStore.addDocuments(this.documentChunks);
     }
@@ -113,7 +138,16 @@ export class KnowledgeService implements OnModuleInit {
     return { chunkCount, source, category };
   }
 
-  listDocuments(): { source: string; category: string; chunkCount: number }[] {
+  listDocuments(): {
+    source: string;
+    category: string;
+    chunkCount: number;
+    origin: DocOrigin;
+  }[] {
+    const originMap = new Map<string, DocOrigin>();
+    for (const doc of this.mergedSources()) {
+      originMap.set(doc.source, doc.origin || 'upload');
+    }
     const sourceMap = new Map<string, { category: string; count: number }>();
     this.documentChunks.forEach((doc) => {
       const source = doc.metadata.source as string;
@@ -126,6 +160,7 @@ export class KnowledgeService implements OnModuleInit {
       source,
       category: info.category,
       chunkCount: info.count,
+      origin: originMap.get(source) || 'builtin',
     }));
   }
 
@@ -187,14 +222,28 @@ export class KnowledgeService implements OnModuleInit {
   }
 
   async reindex() {
+    // Back up runtime uploads before clearing them, so a mistaken rebuild
+    // can be recovered from storage/uploads.backup-<ts>.json.
+    if (this.uploads.length > 0) {
+      const backupKey = `uploads.backup-${Date.now()}`;
+      await this.jsonStore.write(backupKey, this.uploads);
+      this.logger.log(
+        `Backed up ${this.uploads.length} upload(s) to storage/${backupKey}.json`,
+      );
+    }
     this.uploads = [];
     await this.persistUploads();
     this.documentChunks = [];
-    this.vectorStore = new SimpleVectorStore(this.embeddings, 384);
+    this.vectorStore = new SimpleVectorStore();
     this.chunkCounter = 0;
     for (const doc of seedDocuments) {
       await this.addSourceChunks(doc.content, doc.metadata.source, doc.metadata.category);
     }
-    this.logger.log('Knowledge base reindexed (seed only, uploads cleared)');
+    for (const doc of customDocuments) {
+      await this.addSourceChunks(doc.content, doc.source, doc.category);
+    }
+    this.logger.log(
+      `Knowledge base reindexed (seed + custom kept, uploads cleared): ${this.documentChunks.length} chunks`,
+    );
   }
 }

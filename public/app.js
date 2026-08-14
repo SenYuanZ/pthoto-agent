@@ -290,9 +290,16 @@
     const header = document.createElement('div');
     header.className = 'knowledge-item-header';
 
+    const origin = doc.origin === 'builtin' || doc.origin === 'custom' ? doc.origin : 'upload';
+    const originLabel = { builtin: '内置', custom: '自定义', upload: '上传' }[origin];
+
     const titleWrap = document.createElement('div');
     titleWrap.className = 'knowledge-item-title';
     titleWrap.textContent = doc.source;
+    const badge = document.createElement('span');
+    badge.className = `origin-badge origin-${origin}`;
+    badge.textContent = originLabel;
+    titleWrap.appendChild(badge);
 
     const meta = document.createElement('div');
     meta.className = 'knowledge-item-meta';
@@ -345,7 +352,11 @@
     delBtn.type = 'button';
     delBtn.textContent = '删除';
     delBtn.addEventListener('click', async () => {
-      if (!window.confirm(`确定删除「${doc.source}」？`)) return;
+      const message =
+        origin === 'upload'
+          ? `确定删除「${doc.source}」？删除后立即生效。`
+          : `「${doc.source}」来自${originLabel}知识库文件，删除只对本次运行生效，重启服务后会恢复。\n确定删除？（永久删除请直接编辑 custom-documents.json 或内置源码）`;
+      if (!window.confirm(message)) return;
       try {
         await km(`/document/${encodeURIComponent(doc.source)}`, { method: 'DELETE' });
         item.remove();
@@ -412,6 +423,83 @@
 
   async function km(path, options) {
     return kmFetch('/knowledge' + path, options);
+  }
+
+  // --- Upload / add text / reindex ---
+  const kbFileInput = document.getElementById('kbFileInput');
+  const kbUploadBtn = document.getElementById('kbUploadBtn');
+  const kbAddTextBtn = document.getElementById('kbAddTextBtn');
+  const kbReindexBtn = document.getElementById('kbReindexBtn');
+  const kbTextForm = document.getElementById('kbTextForm');
+  const kbTextSource = document.getElementById('kbTextSource');
+  const kbTextContent = document.getElementById('kbTextContent');
+  const kbTextSave = document.getElementById('kbTextSave');
+  const kbTextCancel = document.getElementById('kbTextCancel');
+
+  if (kbUploadBtn) {
+    kbUploadBtn.addEventListener('click', () => kbFileInput.click());
+    kbFileInput.addEventListener('change', async () => {
+      const file = kbFileInput.files && kbFileInput.files[0];
+      if (!file) return;
+      const formData = new FormData();
+      formData.append('file', file);
+      try {
+        await kmFetch('/knowledge/upload', { method: 'POST', body: formData });
+        kmNotice(`已上传「${file.name}」`);
+        await renderKnowledgeList();
+      } catch (err) {
+        kmNotice(`上传失败：${err.message}`);
+      } finally {
+        kbFileInput.value = '';
+      }
+    });
+  }
+
+  if (kbAddTextBtn) {
+    kbAddTextBtn.addEventListener('click', () => {
+      kbTextForm.hidden = !kbTextForm.hidden;
+      if (!kbTextForm.hidden) kbTextSource.focus();
+    });
+    kbTextCancel.addEventListener('click', () => {
+      kbTextForm.hidden = true;
+      kbTextSource.value = '';
+      kbTextContent.value = '';
+    });
+    kbTextSave.addEventListener('click', async () => {
+      const source = kbTextSource.value.trim();
+      const content = kbTextContent.value.trim();
+      if (!source || !content) {
+        kmNotice('请填写文档名称和内容');
+        return;
+      }
+      try {
+        await kmFetch('/knowledge/text', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ source, content, category: '用户录入' }),
+        });
+        kmNotice(`已添加「${source}」`);
+        kbTextSource.value = '';
+        kbTextContent.value = '';
+        kbTextForm.hidden = true;
+        await renderKnowledgeList();
+      } catch (err) {
+        kmNotice(`添加失败：${err.message}`);
+      }
+    });
+  }
+
+  if (kbReindexBtn) {
+    kbReindexBtn.addEventListener('click', async () => {
+      if (!window.confirm('重建知识库会清除管理界面上传的文档（会先自动备份），内置与自定义知识库保留。确定继续？')) return;
+      try {
+        await km('/reindex', { method: 'POST' });
+        kmNotice('知识库已重建为默认文档');
+        await renderKnowledgeList();
+      } catch (err) {
+        kmNotice(`重建失败：${err.message}`);
+      }
+    });
   }
 
   function buildItemClosed(doc) {
