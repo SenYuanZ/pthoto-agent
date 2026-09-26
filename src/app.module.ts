@@ -6,6 +6,7 @@ import configuration from './config/configuration';
 import { ChatModule } from './chat/chat.module';
 import { KnowledgeModule } from './knowledge/knowledge.module';
 import { CommonModule } from './common/common.module';
+import { SceneModule } from './scene/scene.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { CommonModule } from './common/common.module';
     KnowledgeModule,
     ChatModule,
     CommonModule,
+    SceneModule,
   ],
 })
 export class AppModule {}

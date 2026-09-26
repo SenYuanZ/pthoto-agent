@@ -23,4 +23,7 @@ export default () => ({
     topK: parseInt(process.env.RAG_TOP_K || '6', 10),
     temperature: parseFloat(process.env.RAG_TEMPERATURE || '0.3'),
   },
+  scene: {
+    internalToken: process.env.PHOTO_AGENT_TOKEN || '',
+  },
 });
